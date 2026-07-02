@@ -89,13 +89,22 @@ sudo systemctl daemon-reload
 sudo systemctl enable litellm-proxy
 sudo systemctl restart litellm-proxy
 
-sleep 3
-if curl -sf "http://127.0.0.1:${PROXY_PORT}/v1/models" \
-    -H "Authorization: Bearer $(grep master_key "${CONFIG_DIR}/config.yaml" | awk '{print $2}')" \
-    > /dev/null; then
+# LiteLLM can take several seconds to finish startup (model registration,
+# etc.) before it's actually listening — poll instead of a fixed sleep.
+up=0
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  sleep 1
+  if curl -sf "http://127.0.0.1:${PROXY_PORT}/v1/models" \
+      -H "Authorization: Bearer $(grep master_key "${CONFIG_DIR}/config.yaml" | awk '{print $2}')" \
+      > /dev/null; then
+    up=1
+    break
+  fi
+done
+if [ "$up" -eq 1 ]; then
   echo "[install] proxy is up on 127.0.0.1:${PROXY_PORT}"
 else
-  echo "[install] proxy did not respond — check: sudo journalctl -u litellm-proxy -n 50" >&2
+  echo "[install] proxy did not respond after 15s — check: sudo journalctl -u litellm-proxy -n 50" >&2
   exit 1
 fi
 
