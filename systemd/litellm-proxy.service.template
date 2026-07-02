@@ -1,0 +1,14 @@
+[Unit]
+Description=LiteLLM OpenAI-compatible proxy for Bedrock
+After=network.target
+
+[Service]
+Type=simple
+User=__RUN_USER__
+WorkingDirectory=__HOME__/litellm-proxy-config
+ExecStart=__HOME__/litellm-proxy/bin/litellm --config __HOME__/litellm-proxy-config/config.yaml --port __PROXY_PORT__ --host 127.0.0.1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

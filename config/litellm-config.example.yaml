@@ -1,0 +1,37 @@
+# Copy to ~/litellm-proxy-config/config.yaml on the host and edit.
+# NEVER commit the real version of this file — it holds general_settings.master_key.
+#
+# litellm model IDs for Bedrock take the form:
+#   bedrock/<model-id-or-inference-profile-id>
+#
+# Use the bare model ID only if scripts/test-invoke.py confirms on-demand
+# invocation works for it. Most current-generation Claude models require the
+# inference profile ID instead (see docs/troubleshooting.md) — find yours
+# with scripts/list-available-models.sh before adding it here.
+
+model_list:
+  - model_name: claude-opus-4-6
+    litellm_params:
+      model: bedrock/global.anthropic.claude-opus-4-6-v1
+      aws_region_name: us-east-1
+
+  # Add more models only after confirming access with scripts/test-invoke.py:
+  #
+  # - model_name: claude-opus-4-8
+  #   litellm_params:
+  #     model: bedrock/global.anthropic.claude-opus-4-8
+  #     aws_region_name: us-east-1
+  #
+  # - model_name: claude-sonnet-5
+  #   litellm_params:
+  #     model: bedrock/global.anthropic.claude-sonnet-5
+  #     aws_region_name: us-east-1
+  #
+  # - model_name: claude-fable-5
+  #   litellm_params:
+  #     model: bedrock/global.anthropic.claude-fable-5
+  #     aws_region_name: us-east-1
+
+general_settings:
+  # Generate your own — install.sh does this for you automatically.
+  master_key: REPLACE_ME_WITH_A_RANDOM_SECRET
