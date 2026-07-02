@@ -21,40 +21,6 @@ LiteLLM proxy (systemd service)
 Amazon Bedrock — anthropic.claude-* via cross-region inference profile
 ```
 
-## Why you probably need this
-
-If you tried calling a Claude model on Bedrock directly with the bare model
-ID (`anthropic.claude-opus-4-6-v1`) and got:
-
-```
-ValidationException: Invocation of model ID anthropic.claude-opus-4-6-v1
-with on-demand throughput isn't supported. Retry your request with the ID
-or ARN of an inference profile that contains this model.
-```
-
-— that's Bedrock's on-demand throughput restriction. Newer Claude models are
-often only invokable through a **cross-region inference profile**
-(`global.anthropic.claude-opus-4-6-v1`, `us.anthropic.claude-...`, etc.),
-not the bare model ID. The Bedrock console Playground applies this for you
-automatically, which is why a model can "work in the Playground" but fail
-via direct API calls with the bare ID. See [docs/troubleshooting.md](docs/troubleshooting.md)
-for how to find the right profile ID and diagnose this vs. the next issue.
-
-If instead you got:
-
-```
-AccessDeniedException: anthropic.claude-opus-4-8 is not available for
-this account.
-```
-
-— that's a **separate, per-model entitlement** in the Bedrock console
-(Model access page), independent of IAM. `AmazonBedrockFullAccess` only
-grants permission to *call* the API; it does not grant access to any
-specific model. Newer/frontier models are frequently gated separately from
-older ones you already have access to — having `claude-opus-4-6` working
-does not mean `claude-opus-4-8` will. Request access per model in
-Console → Bedrock → Model access, per region.
-
 ## Quick start
 
 Requires: an AWS credential source with `bedrock:InvokeModel` /
@@ -105,21 +71,22 @@ port over SSH instead of opening it:
 ./scripts/llm-tunnel.sh stop
 ```
 
-## Why Python 3.12, not whatever ships on your distro
+## Troubleshooting
 
-LiteLLM depends on `orjson`, which is a Rust extension built via PyO3.
-PyO3's stable-ABI support lags new CPython releases by months — on very
-recent distro images (e.g. Ubuntu 26.04 shipping Python 3.14 by default)
-`pip install litellm` fails with:
+Two Bedrock-specific errors and one install error account for almost every
+issue people hit with this setup:
 
-```
-error: the configured Python interpreter version (3.14) is newer than
-PyO3's maximum supported version (0.23.3)
-```
+- `ValidationException: ...on-demand throughput isn't supported` — the
+  model needs a cross-region **inference profile** ID instead of the bare
+  model ID.
+- `AccessDeniedException: ...is not available for this account` — a
+  **per-model access entitlement** gap in the Bedrock console, separate
+  from IAM permissions.
+- `pip`/`uv pip install` failing to build `orjson` — your system Python is
+  too new for LiteLLM's Rust dependency; `install.sh` already works around
+  this with a pinned Python 3.12 venv.
 
-`install.sh` uses [`uv`](https://github.com/astral-sh/uv) to fetch a pinned
-Python 3.12 into an isolated venv, sidestepping the system Python entirely
-— no `apt`/PPA wrangling, no risk to system packages.
+Full error text, root causes, and fixes for each: [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Adding more models
 
@@ -154,4 +121,4 @@ proxy config. Don't guess inference profile IDs.
 - Doesn't open any inbound network access — the proxy is `127.0.0.1`-only
   by design; use `llm-tunnel.sh` or your own network setup to reach it.
 - Doesn't request Bedrock model access on your behalf — that's a manual
-  step in the AWS console (see Why you probably need this, above).
+  step in the AWS console (see [Troubleshooting](#troubleshooting)).
